@@ -9,7 +9,7 @@ resource "random_integer" "subnet_index" {
 
 module "virtual_machine" {
   source  = "Azure/avm-res-compute-virtualmachine/azurerm"
-  version = "~> 0.19"
+  version = "~> 0.15"
 
   # Core configuration
   location            = local.location
