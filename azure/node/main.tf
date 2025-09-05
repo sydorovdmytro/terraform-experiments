@@ -9,14 +9,14 @@ resource "random_integer" "subnet_index" {
 
 module "virtual_machine" {
   source  = "Azure/avm-res-compute-virtualmachine/azurerm"
-  version = "~> 0.15"
+  version = "0.14.0"
 
   # Core configuration
   location            = local.location
   resource_group_name = local.resource_group_name
   name                = local.vm_name
   sku_size            = local.instance_type
-  zone                = null  # No specific zone preference, let Azure decide
+  zone                = null # No specific zone preference, let Azure decide
 
   # Network configuration
   network_interfaces = {
