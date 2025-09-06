@@ -24,6 +24,11 @@ resource "azurerm_network_interface_security_group_association" "private_vm" {
   network_security_group_id = local.security_group_id
 }
 
+resource "tls_private_key" "vm_ssh" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
 resource "azurerm_linux_virtual_machine" "private_vm" {
   name                = local.vm_name
   resource_group_name = local.resource_group_name
@@ -32,6 +37,11 @@ resource "azurerm_linux_virtual_machine" "private_vm" {
   admin_username      = "azureuser"
 
   disable_password_authentication = true
+
+  admin_ssh_key {
+    username   = "azureuser"
+    public_key = tls_private_key.vm_ssh.public_key_openssh
+  }
 
   network_interface_ids = [
     azurerm_network_interface.private_vm.id,
