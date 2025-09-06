@@ -7,61 +7,61 @@ resource "random_integer" "subnet_index" {
   max = length(var.vcluster.nodeEnvironment.outputs["private_subnet_ids"]) - 1
 }
 
-module "virtual_machine" {
-  source  = "Azure/avm-res-compute-virtualmachine/azurerm"
-  version = "0.14.0"
-
-  # Core configuration
+resource "azurerm_network_interface" "private_vm" {
+  name                = "${local.vm_name}-nic"
   location            = local.location
   resource_group_name = local.resource_group_name
-  name                = local.vm_name
-  sku_size            = local.instance_type
-  zone                = null # No specific zone preference, let Azure decide
 
-  # Network configuration
-  network_interfaces = {
-    network_interface_1 = {
-      name = format("%s-nic", local.vm_name)
-      ip_configurations = {
-        ip_configuration_1 = {
-          name                          = "internal"
-          private_ip_subnet_resource_id = local.private_subnet_id
-          create_public_ip_address      = false
-        }
-      }
-      network_security_groups = {
-        nsg_association = {
-          network_security_group_resource_id = local.security_group_id
-        }
-      }
-    }
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = local.private_subnet_id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+resource "azurerm_network_interface_security_group_association" "private_vm" {
+  network_interface_id      = azurerm_network_interface.private_vm.id
+  network_security_group_id = local.security_group_id
+}
+
+resource "azurerm_linux_virtual_machine" "private_vm" {
+  name                = local.vm_name
+  resource_group_name = local.resource_group_name
+  location            = local.location
+  size                = local.instance_type
+  admin_username      = "azureuser"
+
+  disable_password_authentication = true
+
+  network_interface_ids = [
+    azurerm_network_interface.private_vm.id,
+  ]
+
+  user_data = base64encode(var.vcluster.userData)
+
+  # Managed identity for secure access
+  identity {
+    type = "SystemAssigned"
   }
 
-  os_disk = {
+  # Encrypted OS disk (platform-managed keys by default)
+  os_disk {
     caching              = "ReadWrite"
     storage_account_type = "Premium_LRS"
     disk_size_gb         = 100
   }
 
-  # Ubuntu 22.04 LTS (widely used, battle-tested for Kubernetes)
-  source_image_reference = {
+  # Ubuntu 22.04 LTS
+  source_image_reference {
     publisher = "Canonical"
     offer     = "0001-com-ubuntu-server-jammy"
     sku       = "22_04-lts-gen2"
     version   = "latest"
   }
 
-  # User data for vCluster joining
-  user_data = base64encode(local.user_data)
-
-  managed_identities = {
-    system_assigned = true
-  }
-
-  # Tags
   tags = {
-    Name        = local.vm_name
-    Role        = "vcluster-node"
-    Environment = "vcluster"
+    "Name"               = local.vm_name
+    "vcluster:name"      = local.vcluster_name
+    "vcluster:namespace" = local.vcluster_namespace
   }
 }

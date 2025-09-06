@@ -1,5 +1,3 @@
-data "azurerm_client_config" "current" {}
-
 resource "random_id" "vnet_suffix" {
   byte_length = 4
 }
@@ -35,12 +33,14 @@ module "nat_gateway" {
   # Configure common settings for all public IPs
   public_ip_configuration = {
     allocation_method = "Static"
-    sku              = "Standard"
-    zones            = local.azs
+    sku               = "Standard"
+    zones             = local.azs
   }
 
   tags = {
-    Environment = "vcluster"
+    "Name"               = format("%s-nat-gateway", local.vcluster_name)
+    "vcluster:name"      = local.vcluster_name
+    "vcluster:namespace" = local.vcluster_namespace
   }
 }
 
@@ -79,7 +79,9 @@ module "vnet" {
   )
 
   tags = {
-    Environment = "vcluster"
+    "Name"               = local.vnet_name
+    "vcluster:name"      = local.vcluster_name
+    "vcluster:namespace" = local.vcluster_namespace
   }
 
   depends_on = [azurerm_network_security_group.workers, module.nat_gateway]

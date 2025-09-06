@@ -1,13 +1,13 @@
 output "private_subnet_ids" {
   description = "A list of private subnet ids"
-  value       = [
+  value = [
     for az in local.azs : module.vnet.subnets[format("%s-private-%s", local.vcluster_name, az)].resource_id
   ]
 }
 
 output "public_subnet_ids" {
   description = "A list of public subnet ids"
-  value       = [
+  value = [
     for az in local.azs : module.vnet.subnets[format("%s-public-%s", local.vcluster_name, az)].resource_id
   ]
 }
